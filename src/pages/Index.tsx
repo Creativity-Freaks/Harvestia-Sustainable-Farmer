@@ -1,6 +1,5 @@
-import { Header } from "@/components/Header";
-import { FarmingTip } from "@/components/FarmingTip";
 import { FarmingCard } from "@/components/FarmingCard";
+import { FarmingTip } from "@/components/FarmingTip";
 import { useState } from "react";
 import { Sprout, Droplets, Beef, BarChart3, Map, BookOpen, Trophy, User } from "lucide-react";
 
@@ -53,22 +52,19 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/10">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8 space-y-8">
-        {/* Welcome Section */}
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            HARVESTIA
-          </h1>
-          <p className="text-xl text-muted-foreground">
-            Welcome back, Sustainable Farmer! 
-          </p>
-          <p className="text-foreground/80 max-w-2xl mx-auto">
-            Your gateway to data-driven sustainable agriculture using NASA satellite insights
-          </p>
-        </div>
+    <main className="container mx-auto px-4 py-8 space-y-8">
+      {/* Welcome Section */}
+      <div className="text-center space-y-4">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          HARVESTIA
+        </h1>
+        <p className="text-xl text-muted-foreground">
+          Welcome back, Sustainable Farmer! 
+        </p>
+        <p className="text-foreground/80 max-w-2xl mx-auto">
+          Your gateway to data-driven sustainable agriculture using NASA satellite insights
+        </p>
+      </div>
 
         {/* Daily Farming Tip */}
         <FarmingTip />
@@ -110,12 +106,11 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Footer */}
-        <footer className="text-center text-sm text-muted-foreground pt-8 border-t">
-          Explore • Learn • Discover • Harvest
-        </footer>
-      </main>
-    </div>
+      {/* Footer */}
+      <footer className="text-center text-sm text-muted-foreground pt-8 border-t">
+        Explore • Learn • Discover • Harvest
+      </footer>
+    </main>
   );
 };
 
