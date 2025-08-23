@@ -7,6 +7,7 @@ import { Layout } from "./components/Layout";
 import Index from "./pages/Index";
 import StoryJourney from "./pages/StoryJourney";
 import Courses from "./pages/Courses";
+import { AgriculturalSimulation } from "@/pages/AgriculturalSimulation";
 import MiniGames from "./pages/MiniGames";
 import Facts from "./pages/Facts";
 import Profile from "./pages/Profile";
@@ -44,6 +45,7 @@ function AppContent() {
           <Route index element={<Index />} />
           <Route path="story" element={<StoryJourney />} />
           <Route path="courses" element={<Courses />} />
+          <Route path="simulation" element={<AgriculturalSimulation />} />
           <Route path="games" element={<MiniGames />} />
           <Route path="facts" element={<Facts />} />
           <Route path="profile" element={<Profile />} />

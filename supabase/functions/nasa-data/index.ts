@@ -6,10 +6,13 @@ const corsHeaders = {
 }
 
 interface NASADataRequest {
-  dataType: 'MODIS' | 'SMAP' | 'GISS' | 'OCO-2' | 'Landsat'
+  dataType: 'MODIS' | 'VIIRS' | 'SMAP' | 'ECOSTRESS' | 'GPM_IMERG' | 'MERRA2' | 'NASA_POWER' | 'GIBS' | 'GISS' | 'OCO-2' | 'Landsat'
   location?: string
+  latitude?: number
+  longitude?: number
   startDate?: string
   endDate?: string
+  parameters?: string[]
 }
 
 Deno.serve(async (req) => {
@@ -24,7 +27,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     )
 
-    const { dataType, location = 'global', startDate, endDate }: NASADataRequest = await req.json()
+    const { dataType, location = 'global', latitude, longitude, startDate, endDate, parameters }: NASADataRequest = await req.json()
 
     // Check cache first
     const { data: cachedData } = await supabase
@@ -43,7 +46,7 @@ Deno.serve(async (req) => {
     }
 
     // Generate realistic NASA data (in production, this would call actual NASA APIs)
-    let nasaData = generateNASAData(dataType, location, startDate, endDate)
+    let nasaData = generateNASAData(dataType, location, startDate, endDate, latitude, longitude, parameters)
 
     // Cache the data
     const expiresAt = new Date()
@@ -73,7 +76,7 @@ Deno.serve(async (req) => {
   }
 })
 
-function generateNASAData(dataType: string, location: string, startDate?: string, endDate?: string) {
+function generateNASAData(dataType: string, location: string, startDate?: string, endDate?: string, latitude?: number, longitude?: number, parameters?: string[]) {
   const now = new Date()
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
   
@@ -172,6 +175,139 @@ function generateNASAData(dataType: string, location: string, startDate?: string
             urbanization_rate: Math.random() * 3
           },
           land_health_index: 70 + Math.random() * 25
+        }
+      }
+
+    case 'VIIRS':
+      // VIIRS Enhanced Vegetation Index
+      return {
+        type: 'VIIRS_EVI',
+        location: location,
+        timestamp: now.toISOString(),
+        data: {
+          evi_values: Array.from({ length: 30 }, (_, i) => ({
+            date: new Date(thirtyDaysAgo.getTime() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            evi: 0.2 + Math.random() * 0.6,
+            quality_flag: Math.random() > 0.1 ? 'Good' : 'Marginal'
+          })),
+          vegetation_phenology: Math.random() > 0.5 ? 'Growing' : 'Senescent',
+          biomass_estimate: 150 + Math.random() * 100
+        }
+      }
+
+    case 'ECOSTRESS':
+      // Evapotranspiration and water stress
+      return {
+        type: 'ECOSTRESS_ET',
+        location: location,
+        latitude: latitude || 0,
+        longitude: longitude || 0,
+        timestamp: now.toISOString(),
+        data: {
+          evapotranspiration: Array.from({ length: 15 }, (_, i) => ({
+            date: new Date(thirtyDaysAgo.getTime() + i * 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            et_mm_day: 3 + Math.random() * 8,
+            water_stress_index: Math.random(),
+            canopy_temperature: 25 + Math.random() * 15
+          })),
+          water_use_efficiency: 1.5 + Math.random() * 2,
+          stress_level: Math.random() > 0.7 ? 'High' : Math.random() > 0.4 ? 'Moderate' : 'Low'
+        }
+      }
+
+    case 'GPM_IMERG':
+      // Global Precipitation Measurement
+      return {
+        type: 'GPM_Precipitation',
+        location: location,
+        latitude: latitude || 0,
+        longitude: longitude || 0,
+        timestamp: now.toISOString(),
+        data: {
+          precipitation_data: Array.from({ length: 30 }, (_, i) => ({
+            date: new Date(thirtyDaysAgo.getTime() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            precipitation_mm: Math.random() * 15,
+            intensity: Math.random() > 0.8 ? 'Heavy' : Math.random() > 0.5 ? 'Moderate' : 'Light'
+          })),
+          monthly_total: 50 + Math.random() * 150,
+          drought_index: Math.random() > 0.3 ? 'Normal' : 'Dry'
+        }
+      }
+
+    case 'MERRA2':
+      // Modern-Era Retrospective Analysis
+      return {
+        type: 'MERRA2_Meteorology',
+        location: location,
+        latitude: latitude || 0,
+        longitude: longitude || 0,
+        timestamp: now.toISOString(),
+        data: {
+          meteorological_data: Array.from({ length: 30 }, (_, i) => ({
+            date: new Date(thirtyDaysAgo.getTime() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            temperature_2m: 15 + Math.random() * 20,
+            relative_humidity: 40 + Math.random() * 40,
+            wind_speed: Math.random() * 10,
+            solar_radiation: 15 + Math.random() * 25,
+            reference_et0: 2 + Math.random() * 6
+          })),
+          climate_summary: {
+            avg_temperature: 25 + Math.random() * 10,
+            total_solar: 600 + Math.random() * 200,
+            vapor_pressure_deficit: 0.5 + Math.random() * 2
+          }
+        }
+      }
+
+    case 'NASA_POWER':
+      // NASA Prediction of Worldwide Energy Resource
+      const requestedParams = parameters || ['T2M', 'RH2M', 'WS2M', 'ALLSKY_SFC_SW_DWN']
+      return {
+        type: 'NASA_POWER_Agro',
+        location: location,
+        latitude: latitude || 0,
+        longitude: longitude || 0,
+        timestamp: now.toISOString(),
+        parameters: requestedParams,
+        data: {
+          daily_data: Array.from({ length: 30 }, (_, i) => ({
+            date: new Date(thirtyDaysAgo.getTime() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            T2M: 20 + Math.random() * 15, // Temperature at 2m
+            RH2M: 30 + Math.random() * 50, // Relative Humidity at 2m
+            WS2M: Math.random() * 8, // Wind Speed at 2m
+            ALLSKY_SFC_SW_DWN: 10 + Math.random() * 30, // Solar irradiance
+            ET0: 2 + Math.random() * 6 // Reference evapotranspiration
+          })),
+          agro_indices: {
+            growing_degree_days: 800 + Math.random() * 1200,
+            frost_days: Math.floor(Math.random() * 30),
+            heat_stress_days: Math.floor(Math.random() * 20)
+          }
+        }
+      }
+
+    case 'GIBS':
+      // Global Imagery Browse Services
+      return {
+        type: 'GIBS_Imagery',
+        location: location,
+        timestamp: now.toISOString(),
+        data: {
+          available_layers: [
+            'MODIS_Terra_NDVI_8Day',
+            'SMAP_L3_Passive_Soil_Moisture_Option3_RootZone',
+            'GPM_3IMERGHH_06_precipitation',
+            'ECOSTRESS_L2_LSTE_PT_JPL'
+          ],
+          tile_services: {
+            wmts_endpoint: 'https://map1.vis.earthdata.nasa.gov/wmts-geo/1.0.0/',
+            projection: 'EPSG:4326',
+            tile_format: 'PNG'
+          },
+          temporal_coverage: {
+            start_date: '2000-01-01',
+            end_date: now.toISOString().split('T')[0]
+          }
         }
       }
       

@@ -2,13 +2,16 @@ import { useState, useCallback } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 
-type NASADataType = 'MODIS' | 'SMAP' | 'GISS' | 'OCO-2' | 'Landsat'
+type NASADataType = 'MODIS' | 'VIIRS' | 'SMAP' | 'ECOSTRESS' | 'GPM_IMERG' | 'MERRA2' | 'NASA_POWER' | 'GIBS' | 'GISS' | 'OCO-2' | 'Landsat'
 
 interface NASADataRequest {
   dataType: NASADataType
   location?: string
+  latitude?: number
+  longitude?: number
   startDate?: string
   endDate?: string
+  parameters?: string[]
 }
 
 export const useNASAData = () => {
@@ -59,6 +62,24 @@ export const useNASAData = () => {
   const fetchLandsatData = useCallback((location?: string) => 
     fetchNASAData({ dataType: 'Landsat', location }), [fetchNASAData])
 
+  const fetchVIIRSData = useCallback((location?: string) => 
+    fetchNASAData({ dataType: 'VIIRS', location }), [fetchNASAData])
+  
+  const fetchECOSTRESSData = useCallback((latitude?: number, longitude?: number) => 
+    fetchNASAData({ dataType: 'ECOSTRESS', latitude, longitude }), [fetchNASAData])
+  
+  const fetchGPMData = useCallback((latitude?: number, longitude?: number) => 
+    fetchNASAData({ dataType: 'GPM_IMERG', latitude, longitude }), [fetchNASAData])
+  
+  const fetchMERRA2Data = useCallback((latitude?: number, longitude?: number) => 
+    fetchNASAData({ dataType: 'MERRA2', latitude, longitude }), [fetchNASAData])
+  
+  const fetchNASAPowerData = useCallback((latitude?: number, longitude?: number, parameters?: string[]) => 
+    fetchNASAData({ dataType: 'NASA_POWER', latitude, longitude, parameters }), [fetchNASAData])
+  
+  const fetchGIBSData = useCallback((location?: string) => 
+    fetchNASAData({ dataType: 'GIBS', location }), [fetchNASAData])
+
   return {
     loading,
     error,
@@ -67,6 +88,12 @@ export const useNASAData = () => {
     fetchSMAPData,
     fetchGISSData,
     fetchOCO2Data,
-    fetchLandsatData
+    fetchLandsatData,
+    fetchVIIRSData,
+    fetchECOSTRESSData,
+    fetchGPMData,
+    fetchMERRA2Data,
+    fetchNASAPowerData,
+    fetchGIBSData
   }
 }
