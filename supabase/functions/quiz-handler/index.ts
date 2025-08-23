@@ -26,15 +26,24 @@ serve(async (req) => {
 
     switch (action) {
       case 'getQuiz':
-        // Get quiz with questions but without correct answers
+        // Get quiz info
         const { data: quiz } = await supabaseClient
           .from('quizzes')
-          .select('*, quiz_questions(id, question, options, explanation)')
+          .select('*')
           .eq('id', quizId)
           .single()
 
+        // Get questions securely (without answers)
+        const { data: questions } = await supabaseClient
+          .rpc('get_quiz_questions_secure', { quiz_id_param: quizId })
+
+        const quizWithQuestions = {
+          ...quiz,
+          quiz_questions: questions || []
+        }
+
         return new Response(
-          JSON.stringify({ quiz }),
+          JSON.stringify({ quiz: quizWithQuestions }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         )
 

@@ -484,6 +484,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_quiz_questions_secure: {
+        Args: { quiz_id_param: string }
+        Returns: {
+          explanation: string
+          id: string
+          nasa_data_reference: Json
+          options: Json
+          question: string
+          quiz_id: string
+        }[]
+      }
       submit_quiz_results: {
         Args: { answers_param: Json; quiz_id_param: string }
         Returns: Json
