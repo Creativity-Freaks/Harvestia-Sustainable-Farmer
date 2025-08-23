@@ -484,7 +484,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      submit_quiz_results: {
+        Args: { answers_param: Json; quiz_id_param: string }
+        Returns: Json
+      }
+      validate_quiz_answer: {
+        Args: { question_id: string; submitted_answer: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
