@@ -6,7 +6,6 @@ interface UserProfile {
   id: string
   user_id: string
   display_name: string | null
-  email: string | null
   avatar_url: string | null
   location: string | null
   farm_type: string | null
