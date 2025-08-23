@@ -1,6 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { GameCard } from "@/components/GameCard"
+import { StatsCard } from "@/components/StatsCard"
 import { 
   Gamepad2, 
   Play, 
@@ -10,7 +12,9 @@ import {
   Star,
   Target,
   Zap,
-  Brain
+  Brain,
+  TrendingUp,
+  Award
 } from "lucide-react"
 
 const miniGames = [
@@ -119,13 +123,53 @@ const quizzes = [
 ]
 
 export default function MiniGames() {
+  const totalGames = miniGames.length;
+  const totalPlayers = miniGames.reduce((sum, game) => sum + game.players, 0);
+  const avgRating = (miniGames.reduce((sum, game) => sum + game.rating, 0) / totalGames).toFixed(1);
+  const highestScore = Math.max(...miniGames.map(game => game.highScore));
+
   return (
     <div className="container py-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Mini Games & Quizzes</h1>
-        <p className="text-muted-foreground mt-2">
-          Learn through play! Test your knowledge and skills with fun interactive games
-        </p>
+      <div className="mb-8 animate-fade-in">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground flex items-center">
+              <Gamepad2 className="h-8 w-8 mr-3 text-primary animate-float" />
+              Mini Games & Quizzes
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Learn through play! Test your knowledge and skills with fun interactive games
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Enhanced Stats */}
+      <div className="grid md:grid-cols-4 gap-4 mb-8">
+        <StatsCard
+          title="Total Games"
+          value={totalGames}
+          icon={Gamepad2}
+          animate={true}
+        />
+        <StatsCard
+          title="Total Players"
+          value={totalPlayers.toLocaleString()}
+          icon={Users}
+          animate={true}
+        />
+        <StatsCard
+          title="Avg Rating"
+          value={avgRating}
+          icon={Star}
+          animate={true}
+        />
+        <StatsCard
+          title="Highest Score"
+          value={highestScore.toLocaleString()}
+          icon={Trophy}
+          animate={true}
+        />
       </div>
 
       <div className="grid gap-6 mb-8">
@@ -135,58 +179,21 @@ export default function MiniGames() {
             Interactive Games
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {miniGames.map((game) => {
-              const IconComponent = game.icon
-              
-              return (
-                <Card key={game.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className={`p-2 rounded-lg ${game.color} text-white`}>
-                        <IconComponent className="h-5 w-5" />
-                      </div>
-                      <Badge variant="outline">{game.difficulty}</Badge>
-                    </div>
-                    <CardTitle className="text-lg">{game.title}</CardTitle>
-                    <CardDescription className="text-sm">
-                      {game.description}
-                    </CardDescription>
-                  </CardHeader>
-                  
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <div className="flex items-center">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {game.duration}
-                      </div>
-                      <div className="flex items-center">
-                        <Users className="h-3 w-3 mr-1" />
-                        {game.players}
-                      </div>
-                      <div className="flex items-center">
-                        <Star className="h-3 w-3 mr-1 fill-current text-yellow-500" />
-                        {game.rating}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="text-xs">
-                        <span className="text-muted-foreground">Best Score: </span>
-                        <span className="font-mono font-semibold">{game.highScore.toLocaleString()}</span>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {game.category}
-                      </Badge>
-                    </div>
-                    
-                    <Button className="w-full" size="sm">
-                      <Play className="h-4 w-4 mr-2" />
-                      Play Now
-                    </Button>
-                  </CardContent>
-                </Card>
-              )
-            })}
+            {miniGames.map((game, index) => (
+              <GameCard
+                key={game.id}
+                title={game.title}
+                description={game.description}
+                category={game.category}
+                difficulty={game.difficulty}
+                duration={game.duration}
+                highScore={game.highScore}
+                players={game.players}
+                rating={game.rating}
+                icon={game.icon}
+                color={game.color}
+              />
+            ))}
           </div>
         </div>
 
@@ -196,8 +203,12 @@ export default function MiniGames() {
             Knowledge Quizzes
           </h2>
           <div className="grid md:grid-cols-3 gap-4">
-            {quizzes.map((quiz) => (
-              <Card key={quiz.id}>
+            {quizzes.map((quiz, index) => (
+              <Card 
+                key={quiz.id}
+                className="hover:shadow-lg transition-all duration-300 hover:scale-105 animate-fade-in"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
                 <CardHeader>
                   <CardTitle className="text-lg">{quiz.title}</CardTitle>
                   <CardDescription>
@@ -216,7 +227,7 @@ export default function MiniGames() {
                       {quiz.difficulty}
                     </Badge>
                   </div>
-                  <Button className="w-full" size="sm">
+                  <Button className="w-full hover:scale-105 transition-transform" size="sm">
                     <Trophy className="h-4 w-4 mr-2" />
                     Start Quiz
                   </Button>

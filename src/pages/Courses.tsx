@@ -2,6 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { StatsCard } from "@/components/StatsCard"
+import { ProgressRing } from "@/components/ProgressRing"
 import { 
   BookOpen, 
   Play, 
@@ -9,7 +11,11 @@ import {
   Clock, 
   Users,
   Star,
-  ChevronRight
+  ChevronRight,
+  GraduationCap,
+  TrendingUp,
+  CheckCircle,
+  Zap
 } from "lucide-react"
 
 const courses = [
@@ -70,18 +76,66 @@ const courses = [
 ]
 
 export default function Courses() {
+  const totalCourses = courses.length;
+  const completedCourses = courses.filter(c => c.progress === 100).length;
+  const inProgressCourses = courses.filter(c => c.progress > 0 && c.progress < 100).length;
+  const avgRating = (courses.reduce((sum, c) => sum + c.rating, 0) / totalCourses).toFixed(1);
+
   return (
     <div className="container py-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Agricultural Courses</h1>
-        <p className="text-muted-foreground mt-2">
-          Master sustainable farming with expert-led courses and earn certificates
-        </p>
+      <div className="mb-8 animate-fade-in">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground flex items-center">
+              <GraduationCap className="h-8 w-8 mr-3 text-primary animate-float" />
+              Agricultural Courses
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Master sustainable farming with expert-led courses and earn certificates
+            </p>
+          </div>
+          <div className="text-center">
+            <ProgressRing progress={(completedCourses / totalCourses) * 100} size={80} />
+            <p className="text-xs text-muted-foreground mt-1">Course Progress</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Enhanced Stats */}
+      <div className="grid md:grid-cols-4 gap-4 mb-8">
+        <StatsCard
+          title="Total Courses"
+          value={totalCourses}
+          icon={BookOpen}
+          animate={true}
+        />
+        <StatsCard
+          title="Completed"
+          value={completedCourses}
+          icon={CheckCircle}
+          animate={true}
+        />
+        <StatsCard
+          title="In Progress"
+          value={inProgressCourses}
+          icon={TrendingUp}
+          animate={true}
+        />
+        <StatsCard
+          title="Avg Rating"
+          value={avgRating}
+          icon={Star}
+          animate={true}
+        />
       </div>
 
       <div className="grid gap-6">
-        {courses.map((course) => (
-          <Card key={course.id} className="overflow-hidden">
+        {courses.map((course, index) => (
+          <Card 
+            key={course.id} 
+            className="overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.02] animate-fade-in border-l-4 border-l-primary"
+            style={{ animationDelay: `${index * 0.1}s` }}
+          >
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -149,13 +203,18 @@ export default function Courses() {
               </div>
               
               <div className="flex items-center space-x-2">
-                <Button className="flex-1">
+                <Button className="flex-1 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 transition-all duration-300">
                   <Play className="h-4 w-4 mr-2" />
                   {course.progress > 0 ? 'Continue Learning' : 'Start Course'}
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="hover:scale-105 transition-transform">
                   Preview
                 </Button>
+                {course.certificate && (
+                  <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10">
+                    <Award className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
