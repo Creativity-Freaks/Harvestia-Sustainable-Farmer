@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import StoryJourney from "./pages/StoryJourney";
 import Courses from "./pages/Courses";
 import MiniGames from "./pages/MiniGames";
+import Facts from "./pages/Facts";
 import Profile from "./pages/Profile";
 import Certificates from "./pages/Certificates";
 import Auth from "./pages/Auth";
@@ -44,6 +45,7 @@ function AppContent() {
           <Route path="story" element={<StoryJourney />} />
           <Route path="courses" element={<Courses />} />
           <Route path="games" element={<MiniGames />} />
+          <Route path="facts" element={<Facts />} />
           <Route path="profile" element={<Profile />} />
           <Route path="certificates" element={<Certificates />} />
           <Route path="*" element={<NotFound />} />

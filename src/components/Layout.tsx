@@ -37,9 +37,11 @@ export function Layout({ children }: LayoutProps) {
           </main>
           
           {/* Floating Fact of the Day - only on homepage */}
-          <div className="fixed bottom-6 right-6 w-80 z-50 hidden lg:block">
-            <FactOfTheDay />
-          </div>
+          {window.location.pathname === "/" && (
+            <div className="fixed bottom-6 right-6 w-80 z-50 hidden lg:block">
+              <FactOfTheDay />
+            </div>
+          )}
         </div>
       </div>
     </SidebarProvider>

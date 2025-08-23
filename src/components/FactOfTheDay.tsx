@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Lightbulb, Calendar } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Lightbulb, Calendar, X } from "lucide-react"
+import { useState } from "react"
 
 const farmingFacts = [
   {
@@ -26,17 +28,28 @@ const farmingFacts = [
 ]
 
 export function FactOfTheDay() {
+  const [isVisible, setIsVisible] = useState(true)
   const today = new Date()
   const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24)
   const todaysFact = farmingFacts[dayOfYear % farmingFacts.length]
 
+  if (!isVisible) return null
+
   return (
-    <Card className="bg-gradient-to-br from-accent to-accent/80 border-accent/20">
+    <Card className="bg-gradient-to-br from-accent to-accent/80 border-accent/20 animate-fade-in">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center text-accent-foreground">
           <Lightbulb className="h-5 w-5 mr-2 text-primary" />
           Fact of the Day
-          <Calendar className="h-4 w-4 ml-auto text-muted-foreground" />
+          <Calendar className="h-4 w-4 ml-2 text-muted-foreground" />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto h-6 w-6 p-0 text-muted-foreground hover:text-accent-foreground"
+            onClick={() => setIsVisible(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
