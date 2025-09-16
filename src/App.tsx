@@ -2,8 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet, Navigate } from "react-router-dom";
 import { Layout } from "./components/Layout";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import Index from "./pages/Index";
 import StoryJourney from "./pages/StoryJourney";
 import Courses from "./pages/Courses";
@@ -27,7 +28,7 @@ function LayoutWrapper() {
 }
 
 function AppContent() {
-  const { loading } = useAuth();
+  const { loading, isAuthenticated } = useAuth();
 
   if (loading) {
     return (
@@ -40,7 +41,12 @@ function AppContent() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/auth" element={<Auth />} />
+        <Route 
+          path="/auth" 
+          element={
+            isAuthenticated ? <Navigate to="/" replace /> : <Auth />
+          } 
+        />
         <Route path="/" element={<LayoutWrapper />}>
           <Route index element={<Index />} />
           <Route path="story" element={<StoryJourney />} />
@@ -48,8 +54,22 @@ function AppContent() {
           <Route path="simulation" element={<AgriculturalSimulation />} />
           <Route path="games" element={<MiniGames />} />
           <Route path="facts" element={<Facts />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="certificates" element={<Certificates />} />
+          <Route 
+            path="profile" 
+            element={
+              <ProtectedRoute requireAuth={true}>
+                <Profile />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="certificates" 
+            element={
+              <ProtectedRoute requireAuth={true}>
+                <Certificates />
+              </ProtectedRoute>
+            } 
+          />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
