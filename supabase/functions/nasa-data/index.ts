@@ -45,8 +45,8 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Generate realistic NASA data (in production, this would call actual NASA APIs)
-    let nasaData = generateNASAData(dataType, location, startDate, endDate, latitude, longitude, parameters)
+    // Fetch real NASA data from APIs
+    let nasaData = await fetchRealNASAData(dataType, location, startDate, endDate, latitude, longitude, parameters)
 
     // Cache the data
     const expiresAt = new Date()
@@ -76,245 +76,253 @@ Deno.serve(async (req) => {
   }
 })
 
-function generateNASAData(dataType: string, location: string, startDate?: string, endDate?: string, latitude?: number, longitude?: number, parameters?: string[]) {
+async function fetchRealNASAData(dataType: string, location: string, startDate?: string, endDate?: string, latitude?: number, longitude?: number, parameters?: string[]) {
   const now = new Date()
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
   
+  // Default coordinates (center of US agricultural region) if not provided
+  const lat = latitude || 39.8283
+  const lon = longitude || -98.5795
+  
+  try {
+    switch (dataType) {
+      case 'NASA_POWER':
+        return await fetchNASAPowerData(lat, lon, parameters, startDate, endDate)
+      
+      case 'MODIS':
+        return await fetchMODISData(lat, lon, startDate, endDate)
+      
+      case 'SMAP':
+        return await fetchSMAPData(lat, lon, startDate, endDate)
+      
+      case 'GPM_IMERG':
+        return await fetchGPMData(lat, lon, startDate, endDate)
+      
+      case 'ECOSTRESS':
+        return await fetchECOSTRESSData(lat, lon, startDate, endDate)
+      
+      case 'GIBS':
+        return await fetchGIBSData(location)
+      
+      default:
+        return await generateFallbackData(dataType, location, lat, lon)
+    }
+  } catch (error) {
+    console.error(`Error fetching ${dataType} data:`, error)
+    return await generateFallbackData(dataType, location, lat, lon)
+  }
+}
+
+async function fetchNASAPowerData(lat: number, lon: number, parameters?: string[], startDate?: string, endDate?: string) {
+  const params = parameters || ['T2M', 'RH2M', 'WS2M', 'ALLSKY_SFC_SW_DWN', 'PRECTOTCORR']
+  const start = startDate || '20240101'
+  const end = endDate || new Date().toISOString().slice(0, 10).replace(/-/g, '')
+  
+  const url = `https://power.larc.nasa.gov/api/temporal/daily/point?parameters=${params.join(',')}&community=AG&longitude=${lon}&latitude=${lat}&start=${start}&end=${end}&format=JSON`
+  
+  console.log('Fetching NASA POWER data from:', url)
+  
+  const response = await fetch(url)
+  const data = await response.json()
+  
+  if (!response.ok) {
+    throw new Error(`NASA POWER API error: ${data.message || response.statusText}`)
+  }
+  
+  return {
+    type: 'NASA_POWER_Agro',
+    location: `${lat}, ${lon}`,
+    latitude: lat,
+    longitude: lon,
+    timestamp: new Date().toISOString(),
+    parameters: params,
+    data: {
+      daily_data: Object.keys(data.properties.parameter.T2M || {}).map(date => ({
+        date: `${date.slice(0,4)}-${date.slice(4,6)}-${date.slice(6,8)}`,
+        T2M: data.properties.parameter.T2M?.[date] || null,
+        RH2M: data.properties.parameter.RH2M?.[date] || null,
+        WS2M: data.properties.parameter.WS2M?.[date] || null,
+        ALLSKY_SFC_SW_DWN: data.properties.parameter.ALLSKY_SFC_SW_DWN?.[date] || null,
+        PRECTOTCORR: data.properties.parameter.PRECTOTCORR?.[date] || null
+      })),
+      metadata: data.properties.parameter
+    }
+  }
+}
+
+async function fetchMODISData(lat: number, lon: number, startDate?: string, endDate?: string) {
+  // Using USGS MODIS service for NDVI data
+  const start = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const end = endDate || new Date().toISOString().split('T')[0]
+  
+  return {
+    type: 'MODIS_NDVI',
+    location: `${lat}, ${lon}`,
+    timestamp: new Date().toISOString(),
+    data: {
+      message: 'MODIS data integration requires authentication with NASA Earthdata. Using simulated data.',
+      simulated_ndvi_values: Array.from({ length: 16 }, (_, i) => ({
+        date: new Date(Date.now() - (15-i) * 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        ndvi: 0.3 + Math.random() * 0.5,
+        quality: Math.random() > 0.1 ? 'Good' : 'Marginal'
+      })),
+      note: 'For production use, implement NASA Earthdata authentication'
+    }
+  }
+}
+
+async function fetchSMAPData(lat: number, lon: number, startDate?: string, endDate?: string) {
+  return {
+    type: 'SMAP_Soil_Moisture',
+    location: `${lat}, ${lon}`,
+    timestamp: new Date().toISOString(),
+    data: {
+      message: 'SMAP data requires NASA Earthdata authentication. Using simulated data.',
+      simulated_soil_moisture: Array.from({ length: 30 }, (_, i) => ({
+        date: new Date(Date.now() - (29-i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        moisture_percent: 15 + Math.random() * 25,
+        retrieval_quality: Math.random() > 0.2 ? 'Recommended' : 'Not recommended'
+      })),
+      note: 'For production use, implement NASA Earthdata authentication'
+    }
+  }
+}
+
+async function fetchGPMData(lat: number, lon: number, startDate?: string, endDate?: string) {
+  return {
+    type: 'GPM_Precipitation',
+    location: `${lat}, ${lon}`,
+    timestamp: new Date().toISOString(),
+    data: {
+      message: 'GPM IMERG data integration in progress. Using simulated data.',
+      simulated_precipitation: Array.from({ length: 30 }, (_, i) => ({
+        date: new Date(Date.now() - (29-i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        precipitation_mm: Math.random() * 15,
+        data_quality: Math.random() > 0.15 ? 'Good' : 'Fair'
+      })),
+      note: 'Integration with NASA Giovanni API planned'
+    }
+  }
+}
+
+async function fetchECOSTRESSData(lat: number, lon: number, startDate?: string, endDate?: string) {
+  return {
+    type: 'ECOSTRESS_ET',
+    location: `${lat}, ${lon}`,
+    timestamp: new Date().toISOString(),
+    data: {
+      message: 'ECOSTRESS data requires specialized processing. Using simulated data.',
+      simulated_evapotranspiration: Array.from({ length: 15 }, (_, i) => ({
+        date: new Date(Date.now() - (14-i) * 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        et_mm_day: 3 + Math.random() * 8,
+        quality_flag: Math.random() > 0.2 ? 'Good' : 'Marginal'
+      })),
+      note: 'Integration with AppEEARS API planned'
+    }
+  }
+}
+
+async function fetchGIBSData(location: string) {
+  return {
+    type: 'GIBS_Imagery',
+    location: location,
+    timestamp: new Date().toISOString(),
+    data: {
+      available_layers: [
+        'MODIS_Terra_CorrectedReflectance_TrueColor',
+        'MODIS_Terra_NDVI_8Day',
+        'SMAP_L4_Analyzed_Root_Zone_Soil_Moisture',
+        'GPM_3IMERGHH_06_precipitation'
+      ],
+      wmts_endpoint: 'https://map1.vis.earthdata.nasa.gov/wmts-geo/1.0.0/',
+      tile_matrix_set: 'EPSG4326_250m',
+      format: 'image/png',
+      note: 'NASA GIBS provides real-time satellite imagery'
+    }
+  }
+}
+
+async function generateFallbackData(dataType: string, location: string, lat: number, lon: number) {
+  const now = new Date()
+  
   switch (dataType) {
-    case 'MODIS':
-      // Vegetation health and crop monitoring
-      return {
-        type: 'MODIS_NDVI',
-        location: location,
-        timestamp: now.toISOString(),
-        data: {
-          ndvi_values: Array.from({ length: 30 }, (_, i) => ({
-            date: new Date(thirtyDaysAgo.getTime() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            ndvi: 0.3 + Math.random() * 0.5, // NDVI range 0.3-0.8
-            vegetation_health: Math.random() > 0.2 ? 'Good' : 'Stressed'
-          })),
-          average_ndvi: 0.55,
-          trend: Math.random() > 0.5 ? 'Improving' : 'Declining',
-          crop_health_score: 75 + Math.random() * 20
-        }
-      }
-      
-    case 'SMAP':
-      // Soil moisture data
-      return {
-        type: 'SMAP_Soil_Moisture',
-        location: location,
-        timestamp: now.toISOString(),
-        data: {
-          soil_moisture_levels: Array.from({ length: 30 }, (_, i) => ({
-            date: new Date(thirtyDaysAgo.getTime() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            moisture_percent: 15 + Math.random() * 25, // 15-40% moisture
-            depth_cm: 5,
-            status: Math.random() > 0.3 ? 'Adequate' : 'Low'
-          })),
-          average_moisture: 27.5,
-          irrigation_recommendation: Math.random() > 0.6 ? 'Recommended' : 'Not needed',
-          drought_risk: Math.random() > 0.7 ? 'High' : 'Low'
-        }
-      }
-      
     case 'GISS':
-      // Climate and temperature data
       return {
         type: 'GISS_Temperature',
         location: location,
         timestamp: now.toISOString(),
         data: {
-          temperature_data: Array.from({ length: 30 }, (_, i) => ({
-            date: new Date(thirtyDaysAgo.getTime() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            temp_celsius: 15 + Math.random() * 20,
-            humidity: 40 + Math.random() * 40,
-            precipitation_mm: Math.random() * 10
-          })),
-          climate_trend: Math.random() > 0.5 ? 'Warming' : 'Stable',
-          growing_season_outlook: Math.random() > 0.3 ? 'Favorable' : 'Challenging',
-          frost_risk: Math.random() > 0.8 ? 'High' : 'Low'
+          message: 'GISS temperature data integration planned',
+          simulated_temperature: Array.from({ length: 30 }, (_, i) => ({
+            date: new Date(now.getTime() - (29-i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            temp_celsius: 15 + Math.random() * 20
+          }))
         }
       }
       
     case 'OCO-2':
-      // Carbon dioxide monitoring
       return {
         type: 'OCO2_Carbon',
         location: location,
         timestamp: now.toISOString(),
         data: {
-          co2_levels: Array.from({ length: 30 }, (_, i) => ({
-            date: new Date(thirtyDaysAgo.getTime() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            co2_ppm: 410 + Math.random() * 20,
-            carbon_flux: -2 + Math.random() * 4 // Negative = absorption
-          })),
-          carbon_sequestration_rate: 2.5 + Math.random() * 2,
-          sustainability_score: 65 + Math.random() * 30,
-          recommendation: 'Consider cover crops to increase carbon absorption'
+          message: 'OCO-2 CO2 data integration planned',
+          simulated_co2: Array.from({ length: 30 }, (_, i) => ({
+            date: new Date(now.getTime() - (29-i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            co2_ppm: 410 + Math.random() * 20
+          }))
         }
       }
       
     case 'Landsat':
-      // Land use and change detection
       return {
         type: 'Landsat_Land_Use',
         location: location,
         timestamp: now.toISOString(),
         data: {
-          land_classification: {
+          message: 'Landsat data integration requires USGS Earth Explorer API',
+          simulated_land_use: {
             cropland: 65 + Math.random() * 20,
             forest: 10 + Math.random() * 15,
-            grassland: 15 + Math.random() * 10,
-            urban: 5 + Math.random() * 5,
-            water: 2 + Math.random() * 3
-          },
-          change_detection: {
-            crop_expansion: Math.random() * 5,
-            deforestation_rate: Math.random() * 2,
-            urbanization_rate: Math.random() * 3
-          },
-          land_health_index: 70 + Math.random() * 25
+            grassland: 15 + Math.random() * 10
+          }
         }
       }
-
+      
     case 'VIIRS':
-      // VIIRS Enhanced Vegetation Index
       return {
         type: 'VIIRS_EVI',
         location: location,
         timestamp: now.toISOString(),
         data: {
-          evi_values: Array.from({ length: 30 }, (_, i) => ({
-            date: new Date(thirtyDaysAgo.getTime() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            evi: 0.2 + Math.random() * 0.6,
-            quality_flag: Math.random() > 0.1 ? 'Good' : 'Marginal'
-          })),
-          vegetation_phenology: Math.random() > 0.5 ? 'Growing' : 'Senescent',
-          biomass_estimate: 150 + Math.random() * 100
+          message: 'VIIRS data integration planned',
+          simulated_evi: Array.from({ length: 30 }, (_, i) => ({
+            date: new Date(now.getTime() - (29-i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            evi: 0.2 + Math.random() * 0.6
+          }))
         }
       }
-
-    case 'ECOSTRESS':
-      // Evapotranspiration and water stress
-      return {
-        type: 'ECOSTRESS_ET',
-        location: location,
-        latitude: latitude || 0,
-        longitude: longitude || 0,
-        timestamp: now.toISOString(),
-        data: {
-          evapotranspiration: Array.from({ length: 15 }, (_, i) => ({
-            date: new Date(thirtyDaysAgo.getTime() + i * 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            et_mm_day: 3 + Math.random() * 8,
-            water_stress_index: Math.random(),
-            canopy_temperature: 25 + Math.random() * 15
-          })),
-          water_use_efficiency: 1.5 + Math.random() * 2,
-          stress_level: Math.random() > 0.7 ? 'High' : Math.random() > 0.4 ? 'Moderate' : 'Low'
-        }
-      }
-
-    case 'GPM_IMERG':
-      // Global Precipitation Measurement
-      return {
-        type: 'GPM_Precipitation',
-        location: location,
-        latitude: latitude || 0,
-        longitude: longitude || 0,
-        timestamp: now.toISOString(),
-        data: {
-          precipitation_data: Array.from({ length: 30 }, (_, i) => ({
-            date: new Date(thirtyDaysAgo.getTime() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            precipitation_mm: Math.random() * 15,
-            intensity: Math.random() > 0.8 ? 'Heavy' : Math.random() > 0.5 ? 'Moderate' : 'Light'
-          })),
-          monthly_total: 50 + Math.random() * 150,
-          drought_index: Math.random() > 0.3 ? 'Normal' : 'Dry'
-        }
-      }
-
+      
     case 'MERRA2':
-      // Modern-Era Retrospective Analysis
       return {
         type: 'MERRA2_Meteorology',
         location: location,
-        latitude: latitude || 0,
-        longitude: longitude || 0,
         timestamp: now.toISOString(),
         data: {
-          meteorological_data: Array.from({ length: 30 }, (_, i) => ({
-            date: new Date(thirtyDaysAgo.getTime() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          message: 'MERRA-2 data integration planned',
+          simulated_meteorology: Array.from({ length: 30 }, (_, i) => ({
+            date: new Date(now.getTime() - (29-i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             temperature_2m: 15 + Math.random() * 20,
-            relative_humidity: 40 + Math.random() * 40,
-            wind_speed: Math.random() * 10,
-            solar_radiation: 15 + Math.random() * 25,
-            reference_et0: 2 + Math.random() * 6
-          })),
-          climate_summary: {
-            avg_temperature: 25 + Math.random() * 10,
-            total_solar: 600 + Math.random() * 200,
-            vapor_pressure_deficit: 0.5 + Math.random() * 2
-          }
-        }
-      }
-
-    case 'NASA_POWER':
-      // NASA Prediction of Worldwide Energy Resource
-      const requestedParams = parameters || ['T2M', 'RH2M', 'WS2M', 'ALLSKY_SFC_SW_DWN']
-      return {
-        type: 'NASA_POWER_Agro',
-        location: location,
-        latitude: latitude || 0,
-        longitude: longitude || 0,
-        timestamp: now.toISOString(),
-        parameters: requestedParams,
-        data: {
-          daily_data: Array.from({ length: 30 }, (_, i) => ({
-            date: new Date(thirtyDaysAgo.getTime() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            T2M: 20 + Math.random() * 15, // Temperature at 2m
-            RH2M: 30 + Math.random() * 50, // Relative Humidity at 2m
-            WS2M: Math.random() * 8, // Wind Speed at 2m
-            ALLSKY_SFC_SW_DWN: 10 + Math.random() * 30, // Solar irradiance
-            ET0: 2 + Math.random() * 6 // Reference evapotranspiration
-          })),
-          agro_indices: {
-            growing_degree_days: 800 + Math.random() * 1200,
-            frost_days: Math.floor(Math.random() * 30),
-            heat_stress_days: Math.floor(Math.random() * 20)
-          }
-        }
-      }
-
-    case 'GIBS':
-      // Global Imagery Browse Services
-      return {
-        type: 'GIBS_Imagery',
-        location: location,
-        timestamp: now.toISOString(),
-        data: {
-          available_layers: [
-            'MODIS_Terra_NDVI_8Day',
-            'SMAP_L3_Passive_Soil_Moisture_Option3_RootZone',
-            'GPM_3IMERGHH_06_precipitation',
-            'ECOSTRESS_L2_LSTE_PT_JPL'
-          ],
-          tile_services: {
-            wmts_endpoint: 'https://map1.vis.earthdata.nasa.gov/wmts-geo/1.0.0/',
-            projection: 'EPSG:4326',
-            tile_format: 'PNG'
-          },
-          temporal_coverage: {
-            start_date: '2000-01-01',
-            end_date: now.toISOString().split('T')[0]
-          }
+            relative_humidity: 40 + Math.random() * 40
+          }))
         }
       }
       
     default:
       return {
         type: 'Unknown',
-        error: 'Unsupported data type'
+        error: 'Unsupported data type',
+        available_types: ['NASA_POWER', 'MODIS', 'SMAP', 'GPM_IMERG', 'ECOSTRESS', 'GIBS']
       }
   }
 }
